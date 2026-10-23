@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tours Coulsen 301</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: single column agenda, message template card on top, time rail rows with action buttons */
+:root{
+  --bg:#f3f5f4; --card:#ffffff; --fg:#1c2622; --muted:#5d6b65; --line:#d9e0dc; --accent:#2f6f5b; --accent-fg:#ffffff; --accent-soft:#e3efe9;
+  --display:"Fraunces",Georgia,serif; --body:"IBM Plex Sans",system-ui,sans-serif; --mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#121816;--card:#1a221f;--fg:#e6ece9;--muted:#9aaba3;--line:#2b3632;--accent:#7cc3a8;--accent-fg:#0f1a16;--accent-soft:#1f302a;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#121816;--card:#1a221f;--fg:#e6ece9;--muted:#9aaba3;--line:#2b3632;--accent:#7cc3a8;--accent-fg:#0f1a16;--accent-soft:#1f302a;color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.45}
+.wrap{max-width:620px;margin:0 auto;padding-block:32px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.eyebrow{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:600}
+h1{font-family:var(--display);font-weight:600;font-size:clamp(28px,7vw,38px);line-height:1.1;margin:6px 0 8px;text-wrap:balance}
+h2{font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600;margin:0 0 10px}
+.addr{color:var(--muted);margin:0}
+.meta{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 24px}
+.chip{background:var(--accent-soft);color:var(--accent);font-size:13px;font-weight:500;padding:5px 10px;border-radius:999px}
+
+.tpl{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:28px}
+.tpl-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.tpl-head h2{margin:0}
+textarea{width:100%;box-sizing:border-box;min-height:96px;resize:vertical;font:inherit;font-size:15px;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px}
+textarea:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.hint{font-size:13px;color:var(--muted);margin:8px 0 0}
+.hint code{font-family:var(--mono);font-size:12px;background:var(--accent-soft);color:var(--accent);padding:1px 5px;border-radius:4px}
+
+ol{list-style:none;margin:0;padding:0;display:grid;gap:12px}
+li{display:grid;grid-template-columns:84px 1fr;gap:14px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px}
+.time{font-family:var(--mono);font-size:18px;font-weight:500;color:var(--accent);font-variant-numeric:tabular-nums;border-right:1px solid var(--line);padding-right:12px;align-self:start}
+.time small{display:block;font-size:11px;color:var(--muted);letter-spacing:.08em}
+.who{min-width:0}
+.name{font-weight:600;font-size:17px;margin:0}
+.alias{color:var(--muted);font-weight:400;font-size:14px}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums;user-select:all;margin:2px 0 10px;display:block}
+.actions{display:flex;flex-wrap:wrap;gap:8px}
+button,.btn{font:inherit;font-size:14px;font-weight:500;color:var(--accent);background:transparent;border:1px solid var(--line);border-radius:8px;padding:7px 12px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center}
+button:hover,.btn:hover{background:var(--accent-soft)}
+.btn.primary{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.btn.primary:hover{filter:brightness(1.08)}
+button:focus-visible,.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.note{margin-top:24px;color:var(--muted);font-size:14px}
+@media (max-width:420px){li{grid-template-columns:1fr;gap:6px}.time{border-right:0;padding-right:0;display:flex;gap:6px;align-items:baseline}.time small{display:inline}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="eyebrow">Tour schedule</div>
+  <h1>881 N Coulsen Dr, Apt 301</h1>
+  <p class="addr">Saratoga Springs, UT 84045 · 3 bed, 2 bath · $1,650</p>
+  <div class="meta">
+    <span class="chip">4 showings</span>
+    <span class="chip">10:00 to 11:30 AM</span>
+  </div>
+
+  <section class="tpl">
+    <div class="tpl-head">
+      <h2>Reminder message</h2>
+      <button type="button" id="reset">Reset text</button>
+    </div>
+    <textarea id="tpl" aria-label="Message template"></textarea>
+    <p class="hint">Filled in automatically for each person: <code>{name}</code> <code>{time}</code> <code>{address}</code>. You can edit the text here.</p>
+  </section>
+
+  <ol id="list"></ol>
+
+  <p class="note">"Send reminder" opens Messages with the text ready for that person. "Message" opens a blank text to that number. If your phone doesn't open Messages, tap "Copy" and paste it yourself.</p>
+</div>
+
+<script>
+const ADDRESS = "881 N Coulsen Dr Apt 301, Saratoga Springs";
+const tours = [
+  {time:"10:00", name:"Marisa Trielli", first:"Marisa", phone:"3854928073"},
+  {time:"10:30", name:"Bárbara Morales", first:"Bárbara", phone:"3854728241"},
+  {time:"11:00", name:"Kailee Cason", first:"Kailee", phone:"8013183633"},
+  {time:"11:30", name:"Vel", first:"Vel", phone:"8014002035", alias:"Lahvjal on Marketplace"}
+];
+const DEFAULT_TPL = "Hi {name}, this is Karol. You have a tour scheduled at {address} at {time}. See you there! Feel free to call me if you have any questions.";
+const KEY = 'tpl-en-v2';
+const tpl = document.getElementById('tpl');
+const store = {
+  get(k){try{return localStorage.getItem(k)}catch(e){return null}},
+  set(k,v){try{localStorage.setItem(k,v)}catch(e){}},
+  del(k){try{localStorage.removeItem(k)}catch(e){}}
+};
+function fmt(p){return p.slice(0,3)+'-'+p.slice(3,6)+'-'+p.slice(6)}
+function msgFor(t){
+  return tpl.value.replaceAll('{name}',t.first).replaceAll('{time}',t.time+' AM').replaceAll('{address}',ADDRESS);
+}
+function smsLink(phone, body){
+  const base = 'sms:+1'+phone;
+  return body ? base + '?&body=' + encodeURIComponent(body) : base;
+}
+function render(){
+  const ol = document.getElementById('list');
+  ol.innerHTML = '';
+  tours.forEach((t,i)=>{
+    const li = document.createElement('li');
+    li.innerHTML = `
+      <div class="time">${t.time}<small>AM</small></div>
+      <div class="who">
+        <p class="name">${t.name}${t.alias?` <span class="alias">(${t.alias})</span>`:''}</p>
+        <span class="num">${fmt(t.phone)}</span>
+        <div class="actions">
+          <a class="btn primary" id="remind-${i}" href="${smsLink(t.phone,msgFor(t))}">Send reminder</a>
+          <a class="btn" id="sms-${i}" href="${smsLink(t.phone)}">Message</a>
+          <button type="button" id="copy-${i}" data-i="${i}">Copy</button>
+        </div>
+      </div>`;
+    ol.appendChild(li);
+  });
+}
+function refreshLinks(){
+  tours.forEach((t,i)=>{ document.getElementById('remind-'+i).href = smsLink(t.phone,msgFor(t)); });
+}
+document.getElementById('list').addEventListener('click',e=>{
+  const b = e.target.closest('button[data-i]'); if(!b) return;
+  const text = msgFor(tours[+b.dataset.i]);
+  const done = ()=>{b.textContent='Copied';setTimeout(()=>b.textContent='Copy',1500)};
+  const fallback = ()=>{tpl.focus();tpl.select();};
+  try{ navigator.clipboard.writeText(text).then(done,fallback) }catch(err){ fallback() }
+});
+document.getElementById('reset').addEventListener('click',()=>{ tpl.value = DEFAULT_TPL; store.del(KEY); refreshLinks(); });
+tpl.addEventListener('input',()=>{ store.set(KEY, tpl.value); refreshLinks(); });
+tpl.value = store.get(KEY) || DEFAULT_TPL;
+render();
+</script>
+</body>
+</html>
