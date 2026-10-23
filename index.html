@@ -207,7 +207,7 @@ const esc = s => String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&g
 /* Splash */
 (function(){
   const splash=document.getElementById('splash'), say=document.getElementById('say');
-  const words=["Mi","ex","es","demasiado","bueno"];
+  const words=["Ya","alquila","la","casa","mamãe"];
   say.innerHTML=words.map((w,i)=>`<span class="${i>=3?'hl':''}" style="animation-delay:${.6+i*.22}s">${w}</span>`).join(' ');
   const fl=document.getElementById('floaters');
   for(let i=0;i<18;i++){
