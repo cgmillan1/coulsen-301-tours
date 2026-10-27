@@ -10,11 +10,11 @@
 /* Layout: splash intro, header with progress, collapsible template, one card per showing (actions, contact, documents, notes), bottom sheet for sending */
 :root{
   --bg:#f1f4f2; --card:#ffffff; --sunk:#f6f8f7; --fg:#1b2420; --muted:#5b6964; --line:#dde3df; --accent:#2f6f5b; --accent-fg:#ffffff; --accent-soft:#e2eee8;
-  --pop:#d8463a; --splash:#fbf3ea; --scrim:rgba(15,22,19,.45);
+  --pop:#d8463a; --splash:#fbf3ea; --yellow:#f5c518; --yellow-fg:#2a2105; --scrim:rgba(15,22,19,.45);
   --display:"Fraunces",Georgia,serif; --body:"IBM Plex Sans",system-ui,sans-serif; --mono:"IBM Plex Mono",ui-monospace,monospace;
 }
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#111715;--card:#19211e;--sunk:#141b18;--fg:#e6ece9;--muted:#9aaba3;--line:#29342f;--accent:#7cc3a8;--accent-fg:#0f1a16;--accent-soft:#1e2f29;--pop:#f07a6e;--splash:#1d1916;--scrim:rgba(0,0,0,.6);color-scheme:dark}}
-:root[data-theme="dark"]{--bg:#111715;--card:#19211e;--sunk:#141b18;--fg:#e6ece9;--muted:#9aaba3;--line:#29342f;--accent:#7cc3a8;--accent-fg:#0f1a16;--accent-soft:#1e2f29;--pop:#f07a6e;--splash:#1d1916;--scrim:rgba(0,0,0,.6);color-scheme:dark}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#111715;--card:#19211e;--sunk:#141b18;--fg:#e6ece9;--muted:#9aaba3;--line:#29342f;--accent:#7cc3a8;--accent-fg:#0f1a16;--accent-soft:#1e2f29;--pop:#f07a6e;--splash:#1d1916;--scrim:rgba(0,0,0,.6);--yellow:#f2c230;--yellow-fg:#241c04;color-scheme:dark}}
+:root[data-theme="dark"]{--yellow:#f2c230;--yellow-fg:#241c04;--bg:#111715;--card:#19211e;--sunk:#141b18;--fg:#e6ece9;--muted:#9aaba3;--line:#29342f;--accent:#7cc3a8;--accent-fg:#0f1a16;--accent-soft:#1e2f29;--pop:#f07a6e;--splash:#1d1916;--scrim:rgba(0,0,0,.6);color-scheme:dark}
 body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.45}
 .wrap{max-width:640px;margin:0 auto;padding-block:28px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 
@@ -95,6 +95,8 @@ button:hover,.btn:hover{background:var(--accent-soft)}
 button:focus-visible,.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 button:disabled{opacity:.45;cursor:not-allowed}
 .grow{flex:1 1 140px}
+.btn.yellow{background:var(--yellow);color:var(--yellow-fg);border-color:var(--yellow);font-weight:600}
+.btn.yellow:hover{background:var(--yellow);filter:brightness(1.06)}
 
 .docs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .doc{flex-direction:column;align-items:flex-start;gap:4px;text-align:left;padding:10px;min-width:0;position:relative;background:var(--sunk)}
@@ -196,7 +198,7 @@ const DOCS = [
   {id:"check", name:"Move-In Checklist", short:"Checklist", file:"Move-In-Checklist-Coulsen-301.pdf", note:"Return within 5 days"}
 ];
 const tours = [
-  {id:"luke", time:"", name:"Luke", first:"Luke", phone:"3852486106"},
+  {id:"luke", time:"7:00", ap:"PM", name:"Luke", first:"Luke", phone:"3852486106"},
   {id:"marisa", time:"10:00", name:"Marisa Trielli", first:"Marisa", phone:"3854928072"},
   {id:"barbara", time:"10:30", name:"Bárbara Morales", first:"Bárbara", phone:"3854728241"},
   {id:"kailee", time:"11:00", name:"Kailee Cason", first:"Kailee", phone:"8013183633"},
@@ -242,7 +244,7 @@ const emailOf=t=>store.get('email-'+t.id)||'';
 const tplFu=document.getElementById('tpl-fu');
 const rawTime=t=>t.time||store.get('time-'+t.id)||'';
 function timeLabel(t){
-  if(t.time) return t.time+' AM';
+  if(t.time) return t.time+' '+(t.ap||'AM');
   const v=store.get('time-'+t.id); if(!v) return '';
   let [h,m]=v.split(':').map(Number); const ap=h>=12?'PM':'AM'; h=h%12||12;
   return `${h}:${String(m).padStart(2,'0')} ${ap}`;
@@ -316,7 +318,7 @@ function cardHTML(t,i){
       <div class="section">
         <div class="lbl"><span>Follow-up</span>${fuSent(t)?`<span class="badge">${CK}Sent</span>`:''}</div>
         <div class="row">
-          <a class="btn grow" target="_blank" rel="noopener" id="fu-${i}" data-fu="${i}" href="${sms(t.phone,fuFor(t))}">Ask if still interested</a>
+          <a class="btn yellow grow" target="_blank" rel="noopener" id="fu-${i}" data-fu="${i}" href="${sms(t.phone,fuFor(t))}">Ask if still interested</a>
           ${fuSent(t)?`<button type="button" data-fuundo="${i}">Undo</button>`:''}
         </div>
         <div id="fuconfirm-${i}"></div>
