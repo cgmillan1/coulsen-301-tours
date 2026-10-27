@@ -62,6 +62,12 @@ textarea:focus-visible,input:focus-visible{outline:2px solid var(--accent);outli
 
 /* Cards */
 ol{list-style:none;margin:0;padding:0;display:grid;gap:14px}
+.day{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;padding:14px 2px 0;border-top:1px solid var(--line);margin-top:6px}
+.day:first-child{border-top:0;margin-top:0;padding-top:0}
+.day .dn{font-family:var(--display);font-weight:600;font-size:20px}
+.day.today .dn{color:var(--pop)}
+.day .dd{font-size:14px;color:var(--muted)}
+.day .dc{margin-left:auto;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
 .card{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden;transition:border-color .3s, box-shadow .3s}
 .card.complete{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
 .card-head{display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center;padding:14px 16px;cursor:pointer;width:100%;background:none;border:0;text-align:left;font:inherit;color:inherit}
@@ -198,11 +204,12 @@ const DOCS = [
   {id:"check", name:"Move-In Checklist", short:"Checklist", file:"Move-In-Checklist-Coulsen-301.pdf", note:"Return within 5 days"}
 ];
 const tours = [
-  {id:"luke", time:"7:00", ap:"PM", name:"Luke", first:"Luke", phone:"3852486106"},
-  {id:"marisa", time:"10:00", name:"Marisa Trielli", first:"Marisa", phone:"3854928072"},
-  {id:"barbara", time:"10:30", name:"Bárbara Morales", first:"Bárbara", phone:"3854728241"},
-  {id:"kailee", time:"11:00", name:"Kailee Cason", first:"Kailee", phone:"8013183633"},
-  {id:"vel", time:"11:30", name:"Vel", first:"Vel", phone:"8014002035", alias:"Lahvjal on Marketplace"}
+  {id:"erick", date:"2026-10-27", time:"8:30", ap:"PM", name:"Erick", first:"Erick", phone:"3854839820"},
+  {id:"luke", date:"2026-10-26", time:"7:00", ap:"PM", name:"Luke", first:"Luke", phone:"3852486106"},
+  {id:"marisa", date:"2026-10-24", time:"10:00", name:"Marisa Trielli", first:"Marisa", phone:"3854928072"},
+  {id:"barbara", date:"2026-10-24", time:"10:30", name:"Bárbara Morales", first:"Bárbara", phone:"3854728241"},
+  {id:"kailee", date:"2026-10-24", time:"11:00", name:"Kailee Cason", first:"Kailee", phone:"8013183633"},
+  {id:"vel", date:"2026-10-24", time:"11:30", name:"Vel", first:"Vel", phone:"8014002035", alias:"Lahvjal on Marketplace"}
 ];
 const DEFAULT_TPL = "Hi {name}, this is Karol. You have a tour scheduled at {address} at {time}. See you there! Feel free to call me if you have any questions.";
 const KEY = 'tpl-en-v2';
@@ -330,8 +337,24 @@ function cardHTML(t,i){
     </div></div>
   </li>`;
 }
+function dayLabel(iso){
+  const [y,m,d]=iso.split('-').map(Number), dt=new Date(y,m-1,d);
+  const now=new Date(), today=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  const diff=Math.round((today-dt)/864e5);
+  const full=dt.toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'});
+  const rel=diff===0?'Today':diff===1?'Yesterday':diff===-1?'Tomorrow':'';
+  return {rel,full,past:diff>0};
+}
 function render(){
-  document.getElementById('list').innerHTML=tours.map(cardHTML).join('');
+  let html='',last=null;
+  tours.forEach((t,i)=>{
+    if(t.date!==last){
+      last=t.date; const L=dayLabel(t.date), n=tours.filter(x=>x.date===t.date).length;
+      html+=`<li class="day ${L.rel==='Today'?'today':''}"><span class="dn">${L.rel||L.full}</span>${L.rel?`<span class="dd">${L.full}</span>`:''}<span class="dc">${n} ${n===1?'showing':'showings'}</span></li>`;
+    }
+    html+=cardHTML(t,i);
+  });
+  document.getElementById('list').innerHTML=html;
   updateStats();
 }
 function rerenderCard(i){
