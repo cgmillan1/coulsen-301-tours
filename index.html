@@ -68,6 +68,11 @@ ol{list-style:none;margin:0;padding:0;display:grid;gap:14px}
 .card-head:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 .time{font-family:var(--mono);font-size:17px;font-weight:500;color:var(--accent);font-variant-numeric:tabular-nums;background:var(--accent-soft);border-radius:10px;padding:8px 10px;text-align:center;line-height:1.1}
 .time small{display:block;font-size:10px;letter-spacing:.1em;color:var(--muted)}
+.time.new{background:var(--pop);color:#fff;font-size:13px;letter-spacing:.06em}
+.time.new small{color:#fff;opacity:.85}
+.tt{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:14px;color:var(--muted)}
+.tt input{font:inherit;font-size:15px;color:var(--fg);background:var(--sunk);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+.tpl-body .lbl+textarea{margin-bottom:14px}
 .who{min-width:0}
 .name{font-weight:600;font-size:17px;margin:0;overflow-wrap:anywhere}
 .alias{color:var(--muted);font-weight:400;font-size:13px}
@@ -155,16 +160,18 @@ svg.ck path{fill:none;stroke:var(--accent-fg);stroke-width:2.6;stroke-linecap:ro
   <p class="addr">Saratoga Springs, UT 84045 · 3 bed, 2 bath · $1,650</p>
 
   <div class="progress">
-    <div class="stat"><b>4</b><span>Showings, 10 to 11:30</span></div>
-    <div class="stat"><b id="st-rem">0/4</b><span>Reminders sent</span><div class="bar"><i id="bar-rem"></i></div></div>
-    <div class="stat"><b id="st-doc">0/12</b><span>Docs sent</span><div class="bar"><i id="bar-doc"></i></div></div>
+    <div class="stat"><b id="st-show">5</b><span>People</span></div>
+    <div class="stat"><b id="st-rem">0</b><span>Reminders sent</span><div class="bar"><i id="bar-rem"></i></div></div>
+    <div class="stat"><b id="st-doc">0</b><span>Docs sent</span><div class="bar"><i id="bar-doc"></i></div></div>
   </div>
 
   <details class="tpl" id="tpl-box">
-    <summary>Reminder message <span class="chev">▾</span></summary>
+    <summary>Message templates <span class="chev">▾</span></summary>
     <div class="tpl-body">
-      <div class="lbl"><span>Text</span><button type="button" id="reset" style="min-height:0;padding:4px 10px;font-size:12px">Reset</button></div>
-      <textarea id="tpl" aria-label="Message template"></textarea>
+      <div class="lbl"><span>Tour reminder</span><button type="button" id="reset" style="min-height:0;padding:4px 10px;font-size:12px">Reset</button></div>
+      <textarea id="tpl" aria-label="Tour reminder template"></textarea>
+      <div class="lbl"><span>Follow-up</span><button type="button" id="reset-fu" style="min-height:0;padding:4px 10px;font-size:12px">Reset</button></div>
+      <textarea id="tpl-fu" aria-label="Follow-up template"></textarea>
       <p class="hint">Filled in for each person: <code>{name}</code> <code>{time}</code> <code>{address}</code></p>
     </div>
   </details>
@@ -189,6 +196,7 @@ const DOCS = [
   {id:"check", name:"Move-In Checklist", short:"Checklist", file:"Move-In-Checklist-Coulsen-301.pdf", note:"Return within 5 days"}
 ];
 const tours = [
+  {id:"luke", time:"", name:"Luke", first:"Luke", phone:"3852486106"},
   {id:"marisa", time:"10:00", name:"Marisa Trielli", first:"Marisa", phone:"3854928072"},
   {id:"barbara", time:"10:30", name:"Bárbara Morales", first:"Bárbara", phone:"3854728241"},
   {id:"kailee", time:"11:00", name:"Kailee Cason", first:"Kailee", phone:"8013183633"},
@@ -196,6 +204,8 @@ const tours = [
 ];
 const DEFAULT_TPL = "Hi {name}, this is Karol. You have a tour scheduled at {address} at {time}. See you there! Feel free to call me if you have any questions.";
 const KEY = 'tpl-en-v2';
+const DEFAULT_FU = "Hi {name}, this is Karol, following up on the 3 bed, 2 bath condo at {address}. Are you still interested? It's still available, and I'm happy to answer any questions or set up a time for you to see it.";
+const KEY_FU = 'tpl-fu-v1';
 const store = {
   get(k){try{return localStorage.getItem(k)}catch(e){return null}},
   set(k,v){try{localStorage.setItem(k,v)}catch(e){}},
@@ -229,7 +239,18 @@ const docUrl=d=>DOC_BASE+d.file;
 const remSent=t=>store.get('sent-'+t.id)==='1';
 const docSent=(t,d)=>store.get('doc-'+t.id+'-'+d.id)==='1';
 const emailOf=t=>store.get('email-'+t.id)||'';
-const msgFor=t=>tpl.value.replaceAll('{name}',t.first).replaceAll('{time}',t.time+' AM').replaceAll('{address}',ADDRESS);
+const tplFu=document.getElementById('tpl-fu');
+const rawTime=t=>t.time||store.get('time-'+t.id)||'';
+function timeLabel(t){
+  if(t.time) return t.time+' AM';
+  const v=store.get('time-'+t.id); if(!v) return '';
+  let [h,m]=v.split(':').map(Number); const ap=h>=12?'PM':'AM'; h=h%12||12;
+  return `${h}:${String(m).padStart(2,'0')} ${ap}`;
+}
+const fill=(text,t)=>text.replaceAll('{name}',t.first).replaceAll('{time}',timeLabel(t)||'your tour time').replaceAll('{address}',ADDRESS);
+const msgFor=t=>fill(tpl.value,t);
+const fuFor=t=>fill(tplFu.value,t);
+const fuSent=t=>store.get('fu-'+t.id)==='1';
 const sms=(phone,body)=>'sms:+1'+phone+(body?'?&body='+encodeURIComponent(body):'');
 function docsText(t,list){
   if(list.length===1) return `Hi ${t.first}, this is Karol. Here is the ${list[0].name} for ${ADDRESS}:\n${docUrl(list[0])}\n\nLet me know if you have any questions!`;
@@ -244,10 +265,12 @@ function toast(html){const el=document.getElementById('toast');el.innerHTML=html
 function updateStats(){
   const r=tours.filter(remSent).length;
   const d=tours.reduce((n,t)=>n+DOCS.filter(x=>docSent(t,x)).length,0);
-  document.getElementById('st-rem').textContent=`${r}/4`;
-  document.getElementById('st-doc').textContent=`${d}/12`;
-  document.getElementById('bar-rem').style.width=(r/4*100)+'%';
-  document.getElementById('bar-doc').style.width=(d/12*100)+'%';
+  const n=tours.length, nd=n*DOCS.length;
+  document.getElementById('st-show').textContent=n;
+  document.getElementById('st-rem').textContent=`${r}/${n}`;
+  document.getElementById('st-doc').textContent=`${d}/${nd}`;
+  document.getElementById('bar-rem').style.width=(r/n*100)+'%';
+  document.getElementById('bar-doc').style.width=(d/nd*100)+'%';
 }
 
 /* Cards */
@@ -257,7 +280,7 @@ function cardHTML(t,i){
   const done=remSent(t)&&nd===3;
   return `<li class="card ${open.has(t.id)?'open':''} ${done?'complete':''}" id="card-${t.id}">
     <button class="card-head" type="button" data-toggle="${i}" aria-expanded="${open.has(t.id)}">
-      <div class="time">${t.time}<small>AM</small></div>
+      ${timeLabel(t)?`<div class="time">${timeLabel(t).split(' ')[0]}<small>${timeLabel(t).split(' ')[1]}</small></div>`:`<div class="time new">NEW<small>no time</small></div>`}
       <div class="who">
         <p class="name">${esc(t.name)}${t.alias?` <span class="alias">(${esc(t.alias)})</span>`:''}</p>
         <span class="sub">${fmt(t.phone)}</span>
@@ -270,8 +293,9 @@ function cardHTML(t,i){
     <div class="card-body"><div class="card-inner">
       <div class="section">
         <div class="lbl"><span>Tour reminder</span>${remSent(t)?`<span class="badge">${CK}Sent</span>`:''}</div>
+        ${t.time?'':`<label class="tt" for="tt-${i}">Tour time <input type="time" id="tt-${i}" data-tt="${i}" step="900" value="${esc(rawTime(t))}"></label>`}
         <div class="row">
-          <a class="btn primary grow" target="_blank" rel="noopener" id="remind-${i}" data-remind="${i}" href="${sms(t.phone,msgFor(t))}">Send reminder</a>
+          ${timeLabel(t)?`<a class="btn primary grow" target="_blank" rel="noopener" id="remind-${i}" data-remind="${i}" href="${sms(t.phone,msgFor(t))}">Send reminder</a>`:`<button type="button" class="grow" disabled>Set a time first</button>`}
           <a class="btn grow" target="_blank" rel="noopener" id="sms-${i}" href="${sms(t.phone)}">Message</a>
           ${remSent(t)?`<button type="button" id="undo-${i}" data-undo="${i}">Undo</button>`:''}
         </div>
@@ -289,6 +313,14 @@ function cardHTML(t,i){
           <input type="email" id="email-${i}" data-email="${i}" inputmode="email" autocomplete="off" placeholder="Ask for it to send documents by email" value="${esc(emailOf(t))}">
         </div>
       </div>
+      <div class="section">
+        <div class="lbl"><span>Follow-up</span>${fuSent(t)?`<span class="badge">${CK}Sent</span>`:''}</div>
+        <div class="row">
+          <a class="btn grow" target="_blank" rel="noopener" id="fu-${i}" data-fu="${i}" href="${sms(t.phone,fuFor(t))}">Ask if still interested</a>
+          ${fuSent(t)?`<button type="button" data-fuundo="${i}">Undo</button>`:''}
+        </div>
+        <div id="fuconfirm-${i}"></div>
+      </div>
       <div class="section notes">
         <div class="lbl"><label for="note-${i}">Notes</label><span class="saved" id="saved-${i}">Saved ✓</span></div>
         <textarea id="note-${i}" data-note="${i}" placeholder="e.g. Coming with 2 kids, has a dog, asked about parking">${esc(store.get('note-'+t.id)||'')}</textarea>
@@ -305,7 +337,7 @@ function rerenderCard(i){
   const tmp=document.createElement('div'); tmp.innerHTML=cardHTML(t,i).trim();
   old.replaceWith(tmp.firstElementChild); updateStats();
 }
-function refreshLinks(){tours.forEach((t,i)=>{const a=document.getElementById('remind-'+i);if(a)a.href=sms(t.phone,msgFor(t))})}
+function refreshLinks(){tours.forEach((t,i)=>{const a=document.getElementById('remind-'+i);if(a)a.href=sms(t.phone,msgFor(t));const f=document.getElementById('fu-'+i);if(f)f.href=sms(t.phone,fuFor(t))})}
 
 /* Sheet */
 const sheet=document.getElementById('sheet'), scrim=document.getElementById('scrim');
@@ -377,6 +409,14 @@ listEl.addEventListener('click',e=>{
   const tg=e.target.closest('[data-toggle]');
   if(tg){const t=tours[+tg.dataset.toggle];open.has(t.id)?open.delete(t.id):open.add(t.id);
     const c=document.getElementById('card-'+t.id);c.classList.toggle('open');tg.setAttribute('aria-expanded',c.classList.contains('open'));return}
+  const fu=e.target.closest('[data-fu]');
+  if(fu){const i=+fu.dataset.fu,t=tours[i];
+    toast(`<span class="plane">✈</span> Opening Messages for ${esc(t.first)}…`);
+    if(!fuSent(t)) document.getElementById('fuconfirm-'+i).innerHTML=`<div class="confirm">Did you send it? <button type="button" class="primary" data-fuyes="${i}">Yes, sent</button><button type="button" data-funo="${i}">Not yet</button></div>`;
+    return}
+  const fy=e.target.closest('[data-fuyes]'); if(fy){const i=+fy.dataset.fuyes;store.set('fu-'+tours[i].id,'1');rerenderCard(i);toast(`${CK} Follow-up sent to ${esc(tours[i].first)}`);return}
+  const fn=e.target.closest('[data-funo]'); if(fn){document.getElementById('fuconfirm-'+fn.dataset.funo).innerHTML='';return}
+  const fx=e.target.closest('[data-fuundo]'); if(fx){store.del('fu-'+tours[+fx.dataset.fuundo].id);rerenderCard(+fx.dataset.fuundo);return}
   const rm=e.target.closest('[data-remind]');
   if(rm){const i=+rm.dataset.remind,t=tours[i];
     toast(`<span class="plane">✈</span> Opening Messages for ${esc(t.first)}…`);
@@ -384,7 +424,7 @@ listEl.addEventListener('click',e=>{
     return}
   const y=e.target.closest('[data-yes]');
   if(y){const i=+y.dataset.yes;store.set('sent-'+tours[i].id,'1');rerenderCard(i);toast(`${CK} Reminder sent to ${esc(tours[i].first)}`);
-    if(tours.every(remSent))setTimeout(()=>toast('🎉 All 4 reminders sent!'),1600);return}
+    if(tours.every(remSent))setTimeout(()=>toast(`🎉 All ${tours.length} reminders sent!`),1600);return}
   const n=e.target.closest('[data-no]'); if(n){document.getElementById('confirm-'+n.dataset.no).innerHTML='';return}
   const u=e.target.closest('[data-undo]'); if(u){store.del('sent-'+tours[+u.dataset.undo].id);rerenderCard(+u.dataset.undo);return}
   const dc=e.target.closest('[data-doc]'); if(dc){const [i,id]=dc.dataset.doc.split(':');openSheet(+i,[id]);return}
@@ -392,6 +432,11 @@ listEl.addEventListener('click',e=>{
 });
 const timers={};
 function flash(id){const s=document.getElementById(id);if(!s)return;s.classList.add('on');clearTimeout(timers[id]);timers[id]=setTimeout(()=>s.classList.remove('on'),1200)}
+listEl.addEventListener('change',e=>{
+  const tt=e.target.closest('[data-tt]'); if(!tt) return;
+  const i=+tt.dataset.tt; tt.value?store.set('time-'+tours[i].id,tt.value):store.del('time-'+tours[i].id);
+  rerenderCard(i); if(tt.value) toast(`${CK} Tour time saved: ${timeLabel(tours[i])}`);
+});
 listEl.addEventListener('input',e=>{
   const nt=e.target.closest('[data-note]'); if(nt){store.set('note-'+tours[+nt.dataset.note].id,nt.value);flash('saved-'+nt.dataset.note);return}
   const em=e.target.closest('[data-email]'); if(em){store.set('email-'+tours[+em.dataset.email].id,em.value.trim());flash('esaved-'+em.dataset.email)}
@@ -400,6 +445,9 @@ listEl.addEventListener('input',e=>{
 document.getElementById('reset').addEventListener('click',e=>{e.preventDefault();tpl.value=DEFAULT_TPL;store.del(KEY);refreshLinks()});
 tpl.addEventListener('input',()=>{store.set(KEY,tpl.value);refreshLinks()});
 tpl.value=store.get(KEY)||DEFAULT_TPL;
+tplFu.value=store.get(KEY_FU)||DEFAULT_FU;
+tplFu.addEventListener('input',()=>{store.set(KEY_FU,tplFu.value);refreshLinks()});
+document.getElementById('reset-fu').addEventListener('click',e=>{e.preventDefault();tplFu.value=DEFAULT_FU;store.del(KEY_FU);refreshLinks()});
 render();
 </script>
 </body>
